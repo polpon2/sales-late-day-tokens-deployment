@@ -1,0 +1,46 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../docker-compose.yaml
+    kompose.version: 1.31.2 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: token-payment
+  name: token-payment
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      io.kompose.service: token-payment
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../docker-compose.yaml
+        kompose.version: 1.31.2 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/clickhouse-setup-default: "true"
+        io.kompose.network/scalable-p4-rabbitmq-go-net: "true"
+        io.kompose.service: token-payment
+    spec:
+      containers:
+        - env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: http://my-release-signoz-otel-collector.platform.svc.cluster.local:4317
+            - name: OTEL_EXPORTER_OTLP_PROTOCOL
+              value: grpc
+            - name: OTEL_RESOURCE_ATTRIBUTES
+              value: service.name=payment
+          image: ghcr.io/polpon2/sales-late-day-tokens-service-process-payment:main
+          imagePullPolicy: Always
+          name: token-payment
+          ports:
+            - containerPort: 3333
+              protocol: TCP
+          resources: {}
+      imagePullSecrets:
+        - name: dockerconfigjson-github-com
+      restartPolicy: Always
+status: {}

@@ -1,0 +1,68 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  annotations:
+    kompose.cmd: kompose convert -f ../docker-compose.yaml
+    kompose.version: 1.31.2 (HEAD)
+  creationTimestamp: null
+  labels:
+    io.kompose.service: db
+  name: db
+spec:
+  selector:
+    matchLabels:
+      io.kompose.service: db
+  strategy: {}
+  template:
+    metadata:
+      annotations:
+        kompose.cmd: kompose convert -f ../docker-compose.yaml
+        kompose.version: 1.31.2 (HEAD)
+      creationTimestamp: null
+      labels:
+        io.kompose.network/scalable-p2-rabbitmq-go-net: "true"
+        io.kompose.service: db
+    spec:
+      containers:
+        - env:
+            - name: MARIADB_DATABASE
+              value: token
+            - name: MARIADB_PASSWORD
+              value: devpass
+            - name: MARIADB_ROOT_PASSWORD
+              value: devpass
+            - name: MARIADB_USER
+              value: dev
+          image: mariadb
+          name: db
+          ports:
+            - containerPort: 3306
+              hostPort: 3306
+              protocol: TCP
+          resources: {}
+          volumeMounts:
+          - name: mysql-initdb
+            mountPath: /docker-entrypoint-initdb.d
+          - name: mariadb-pv
+            mountPath: /var/lib/mysql
+      restartPolicy: Always
+      volumes:
+          - name: mysql-initdb
+            configMap:
+              name: mysql-initdb-config
+          - name: mariadb-pv
+            persistentVolumeClaim:
+              claimName: mariadb-pv-claim
+status: {}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: mysql-initdb-config
+data:
+  init.sql: |
+    GRANT ALL PRIVILEGES ON  *.* TO 'dev'@'%';
+    CREATE DATABASE IF NOT EXISTS `db_order`;
+    CREATE DATABASE IF NOT EXISTS `db_payment`;
+    CREATE DATABASE IF NOT EXISTS `db_inventory`;
+    CREATE DATABASE IF NOT EXISTS `db_delivery`;
